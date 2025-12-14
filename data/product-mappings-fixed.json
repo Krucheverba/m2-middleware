@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-13T11:26:10.798Z",
+  "mappings": {
+    "235a72fd-6000-11f0-0a80-1b1f0067f813": "BARDAHL_XTC_10W-40_DBSA",
+    "f7f86a67-7db7-11f0-0a80-16ca00437f6b": "IDEMITSU_5W-40_SN_DBSA",
+    "f61b9505-193c-11f0-0a80-166c00841d21": "Lukoil-5w-30-GC_DBSA",
+    "f3c9aabd-193c-11f0-0a80-166c00841cce": "Lukoil-5w-30-SL-CF-FD_DBSA",
+    "f8b78b0a-193c-11f0-0a80-166c00841d9c": "Lukoil-5w-40-CF-CN_DBSA",
+    "f1cf77de-193c-11f0-0a80-166c00841c88": "Lukoil-5w-40-SN-DIESEL_DBSA",
+    "ceb2e54f-23ab-11f0-0a80-16d200679734": "Lukoil-ATF-SP-IV_DBSA",
+    "e92489fa-193c-11f0-0a80-166c00841b60": "Lukoil-Gen-5w-40_DBSA",
+    "3307339e-3d59-11f0-0a80-000b0024d226": "Lukoil-Genesis-0w-20-GC-C5_DBSA",
+    "d376f4ed-bf0b-11ef-0a80-1656002db08c": "NGN-A-Line-0w-30-PAO-4L_DBSA",
+    "d56fefa3-bf0b-11ef-0a80-1656002db0c9": "NGN-Agate-5w-30-4L_DBSA",
+    "d78a4d92-bf0b-11ef-0a80-1656002db138": "NGN-Diesel-Syn-5w-40-4L_DBSA",
+    "d9cf8972-bf0b-11ef-0a80-1656002db151": "NGN-Efficiency-5w-30-4L_DBSA",
+    "db76aef8-bf0b-11ef-0a80-1656002db169": "NGN-Excellence-DXS-5w-30-4L_DBSA",
+    "dd1f086d-bf0b-11ef-0a80-1656002db186": "NGN-Extra-5w-50-4L_DBSA",
+    "df185cf0-bf0b-11ef-0a80-1656002db1a2": "NGN-Future-0w-20-4L_DBSA",
+    "e162d6c1-bf0b-11ef-0a80-1656002db1cd": "NGN-Synergy-Plus-0w-30-4L_DBSA",
+    "e3443bc6-bf0b-11ef-0a80-1656002db1e4": "NGN-Synt-S-5w-40-4L_DBSA",
+    "2d8db113-ed4c-11ef-0a80-0170009789e3": "NGN-Universal-ATF-4L_DBSA",
+    "3421005b-3d59-11f0-0a80-000b0024d267": "NGN_5w-40_sp_DBSA",
+    "f9692201-8110-11f0-0a80-05e4005fac95": "NGN_CVT_Fluid_1304_DBSA",
+    "f7314692-208f-11f0-0a80-0dec0005c5a9": "NGN_DSG_DBSA",
+    "1e914c76-2f0b-11f0-0a80-18a400b92bd4": "NGN_Premium_10w-40_DBSA",
+    "352ac374-3d59-11f0-0a80-000b0024d292": "NGN_sp-iv_DBSA"
+  }
+}

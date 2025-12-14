@@ -2,11 +2,109 @@ const express = require('express');
 const logger = require('../logger');
 
 /**
- * Маршрут для обработки webhook событий от МойСклад
+ * Маршрут для обработки webhook событий от Яндекс.Маркет и МойСклад
  * Проверяет: Требования 4.1, 4.2, 4.3, 4.4, 4.5
  */
-function createMoySkladWebhookRouter(stockService) {
+function createMoySkladWebhookRouter(stockService, orderService) {
   const router = express.Router();
+
+  /**
+   * GET /webhook
+   * Endpoint для проверки webhook от Яндекс.Маркет (базовый путь)
+   * Яндекс может проверять доступность по базовому пути
+   */
+  router.get('/webhook', (req, res) => {
+    logger.info('Получен GET PING запрос от Яндекс.Маркет на базовый путь /webhook');
+    
+    res.status(200).json({
+      version: "1.0.0",
+      name: "M2 Middleware Webhook",
+      time: new Date().toISOString()
+    });
+  });
+
+  /**
+   * POST /webhook
+   * Endpoint для обработки webhook событий от Яндекс.Маркет (базовый путь)
+   * Яндекс отправляет POST запросы с событиями заказов
+   */
+  router.post('/webhook', async (req, res) => {
+    try {
+      logger.info('Получен POST запрос от Яндекс.Маркет на базовый путь /webhook', {
+        body: req.body,
+        headers: {
+          'content-type': req.headers['content-type'],
+          'user-agent': req.headers['user-agent']
+        }
+      });
+      
+      const webhookData = req.body;
+      
+      // Быстро отвечаем Яндекс.Маркет что webhook принят
+      res.status(200).json({
+        status: "accepted",
+        message: "Webhook received",
+        time: new Date().toISOString()
+      });
+      
+      // Обработка webhook асинхронно, не блокируем ответ
+      setImmediate(() => {
+        handleYandexWebhook(webhookData, orderService)
+          .catch(error => {
+            logger.error('Ошибка при асинхронной обработке webhook от Яндекс.Маркет', {
+              error: error.message,
+              stack: error.stack,
+              webhookData
+            });
+          });
+      });
+      
+    } catch (error) {
+      logger.error('Ошибка при обработке webhook от Яндекс.Маркет', {
+        error: error.message,
+        stack: error.stack,
+        body: req.body
+      });
+      
+      // Возвращаем 200 OK даже при ошибке, чтобы Яндекс не повторял webhook
+      res.status(200).json({
+        status: "error",
+        message: "Failed to process webhook"
+      });
+    }
+  });
+
+  /**
+   * GET /webhook/notification
+   * Endpoint для проверки webhook от Яндекс.Маркет
+   * Яндекс отправляет PING запрос для проверки доступности
+   */
+  router.get('/webhook/notification', (req, res) => {
+    logger.info('Получен GET PING запрос от Яндекс.Маркет для проверки webhook');
+    
+    res.status(200).json({
+      version: "1.0.0",
+      name: "M2 Middleware Webhook",
+      time: new Date().toISOString()
+    });
+  });
+
+  /**
+   * POST /webhook/notification
+   * Endpoint для обработки PING от Яндекс.Маркет
+   * Яндекс может отправлять POST запросы для проверки
+   */
+  router.post('/webhook/notification', (req, res) => {
+    logger.info('Получен POST PING запрос от Яндекс.Маркет для проверки webhook', {
+      body: req.body
+    });
+    
+    res.status(200).json({
+      version: "1.0.0",
+      name: "M2 Middleware Webhook",
+      time: new Date().toISOString()
+    });
+  });
 
   /**
    * POST /webhook/moysklad
@@ -322,6 +420,193 @@ function isStockChangeEvent(webhookData) {
   });
   
   return isStockRelated && isValidAction;
+}
+
+/**
+ * Обработка webhook событий от Яндекс.Маркет
+ * Обрабатывает события: ORDER_CREATED, ORDER_CANCELLED, ORDER_STATUS_UPDATED
+ * 
+ * @param {Object} webhookData - Данные webhook от Яндекс.Маркет
+ * @param {Object} orderService - Сервис для обработки заказов
+ * @returns {Promise<void>}
+ */
+async function handleYandexWebhook(webhookData, orderService) {
+  try {
+    // Извлечь тип события и данные заказа
+    const eventType = webhookData.eventType;
+    const orderId = webhookData.orderId;
+    
+    logger.info('Обработка webhook события от Яндекс.Маркет', {
+      eventType,
+      orderId,
+      webhookData
+    });
+    
+    // Обработка разных типов событий
+    switch (eventType) {
+      case 'ORDER_CREATED':
+        // Новый заказ создан - получить полные данные и создать в МойСклад
+        logger.info('Получено событие ORDER_CREATED', { orderId });
+        await handleOrderCreated(orderId, orderService);
+        break;
+        
+      case 'ORDER_STATUS_UPDATED':
+        // Статус заказа изменился - проверить если это отгрузка
+        logger.info('Получено событие ORDER_STATUS_UPDATED', { orderId });
+        await handleOrderStatusUpdated(orderId, webhookData, orderService);
+        break;
+        
+      case 'ORDER_CANCELLED':
+        // Заказ отменён - отменить в МойСклад
+        logger.info('Получено событие ORDER_CANCELLED', { orderId });
+        await handleOrderCancelled(orderId, orderService);
+        break;
+        
+      default:
+        logger.info('Неизвестный тип события webhook, пропускаем', {
+          eventType,
+          orderId
+        });
+    }
+    
+  } catch (error) {
+    logger.error('Ошибка при обработке webhook от Яндекс.Маркет', {
+      error: error.message,
+      stack: error.stack,
+      webhookData
+    });
+    // Не пробрасываем ошибку - webhook уже подтверждён
+  }
+}
+
+/**
+ * Обработка события ORDER_CREATED
+ * Получает полные данные заказа и создаёт его в МойСклад
+ * 
+ * @param {string} orderId - ID заказа M2
+ * @param {Object} orderService - Сервис для обработки заказов
+ * @returns {Promise<void>}
+ */
+async function handleOrderCreated(orderId, orderService) {
+  try {
+    // Получить полные данные заказа из Яндекс.Маркет API
+    const order = await orderService.yandexClient.getOrder(orderId);
+    
+    logger.info('Получены данные заказа из Яндекс.Маркет', {
+      orderId,
+      status: order.status,
+      itemsCount: order.items?.length || 0
+    });
+    
+    // Проверить статус заказа - создаём только если статус PROCESSING
+    if (order.status === 'PROCESSING') {
+      // Создать заказ в МойСклад
+      await orderService.createMoySkladOrder(order);
+      
+      logger.info('Заказ успешно создан в МойСклад через webhook', {
+        orderId
+      });
+    } else {
+      logger.info('Заказ не в статусе PROCESSING, пропускаем создание', {
+        orderId,
+        status: order.status
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Ошибка при обработке ORDER_CREATED', {
+      orderId,
+      error: error.message,
+      stack: error.stack
+    });
+    // Не пробрасываем ошибку - будет обработано через polling
+  }
+}
+
+/**
+ * Обработка события ORDER_STATUS_UPDATED
+ * Проверяет если заказ отгружен и создаёт отгрузку в МойСклад
+ * 
+ * @param {string} orderId - ID заказа M2
+ * @param {Object} webhookData - Данные webhook
+ * @param {Object} orderService - Сервис для обработки заказов
+ * @returns {Promise<void>}
+ */
+async function handleOrderStatusUpdated(orderId, webhookData, orderService) {
+  try {
+    // Получить новый статус из webhook данных
+    const newStatus = webhookData.newStatus || webhookData.status;
+    
+    logger.info('Статус заказа изменился', {
+      orderId,
+      newStatus
+    });
+    
+    // Если заказ отгружен - создать отгрузку в МойСклад
+    if (newStatus === 'SHIPPED' || newStatus === 'DELIVERED') {
+      logger.info('Заказ отгружен, создаём отгрузку в МойСклад', {
+        orderId,
+        newStatus
+      });
+      
+      await orderService.createShipment(orderId);
+      
+      logger.info('Отгрузка успешно создана в МойСклад через webhook', {
+        orderId
+      });
+    } else {
+      logger.info('Статус заказа не требует создания отгрузки', {
+        orderId,
+        newStatus
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Ошибка при обработке ORDER_STATUS_UPDATED', {
+      orderId,
+      error: error.message,
+      stack: error.stack
+    });
+    // Не пробрасываем ошибку - будет обработано через polling
+  }
+}
+
+/**
+ * Обработка события ORDER_CANCELLED
+ * Отменяет заказ в МойСклад если он ещё не отгружен
+ * 
+ * @param {string} orderId - ID заказа M2
+ * @param {Object} orderService - Сервис для обработки заказов
+ * @returns {Promise<void>}
+ */
+async function handleOrderCancelled(orderId, orderService) {
+  try {
+    logger.info('Обработка отмены заказа', { orderId });
+    
+    // Отменить заказ в МойСклад
+    await orderService.cancelOrder(orderId);
+    
+    logger.info('Заказ успешно отменён в МойСклад через webhook', {
+      orderId
+    });
+    
+  } catch (error) {
+    // Проверить если это ошибка "заказ уже отгружен"
+    if (error.message.includes('уже отгружен')) {
+      logger.warn('Заказ уже отгружен, автоматическая отмена невозможна', {
+        orderId,
+        error: error.message
+      });
+      // Это ожидаемая ситуация - не логируем как ошибку
+    } else {
+      logger.error('Ошибка при обработке ORDER_CANCELLED', {
+        orderId,
+        error: error.message,
+        stack: error.stack
+      });
+    }
+    // Не пробрасываем ошибку - webhook уже подтверждён
+  }
 }
 
 module.exports = createMoySkladWebhookRouter;

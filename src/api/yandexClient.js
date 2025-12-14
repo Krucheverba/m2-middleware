@@ -11,7 +11,7 @@ class YandexClient {
     this.client = axios.create({
       baseURL: this.baseURL,
       headers: {
-        'Authorization': `Bearer ${this.token}`,
+        'Api-Key': this.token,
         'Content-Type': 'application/json'
       },
       timeout: 30000

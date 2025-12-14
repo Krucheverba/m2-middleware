@@ -281,6 +281,40 @@ async function runTests() {
       console.log('  ✓ Детали заказа получены');
     }
 
+    // Тест 11: Проверка формата заголовка Api-Key (не Authorization: Bearer)
+    // **Feature: yandex-api-key-migration, Property 1: API-key header format**
+    console.log('\n✓ Тест 11: Проверка формата заголовка Api-Key');
+    {
+      // Создаем новый клиент и проверяем что axios.create был вызван с правильными заголовками
+      // Сохраняем оригинальный axios.create
+      const createCalls = [];
+      const originalCreate = originalAxios.create;
+      originalAxios.create = (config) => {
+        createCalls.push(config);
+        return mockAxiosInstance;
+      };
+      
+      // Создаем новый клиент
+      const testClient = new YandexClient();
+      
+      // Восстанавливаем оригинальный create
+      originalAxios.create = originalCreate;
+      
+      // Проверяем что axios.create был вызван с правильными заголовками
+      console.assert(createCalls.length > 0, 'axios.create должен быть вызван');
+      const headers = createCalls[createCalls.length - 1].headers;
+      
+      console.assert(headers['Api-Key'] !== undefined, 'Заголовок Api-Key должен присутствовать');
+      console.assert(headers['Api-Key'] === 'test-token-456', 'Api-Key должен содержать токен');
+      console.assert(headers['Authorization'] === undefined, 'Заголовок Authorization НЕ должен присутствовать');
+      console.assert(!headers['Api-Key'].includes('Bearer'), 'Api-Key НЕ должен содержать Bearer');
+      console.assert(headers['Content-Type'] === 'application/json', 'Content-Type должен быть application/json');
+      
+      console.log('  ✓ Формат заголовка Api-Key корректный');
+      console.log('  ✓ Заголовок Authorization отсутствует');
+      console.log('  ✓ Токен передается без префикса Bearer');
+    }
+
     console.log('\n✅ Все тесты пройдены успешно!');
   } catch (error) {
     console.error('\n❌ Ошибка при выполнении тестов:', error);

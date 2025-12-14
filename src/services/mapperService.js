@@ -173,6 +173,31 @@ class MapperService {
   }
 
   /**
+   * Удалить маппинг заказа
+   * Используется при отмене заказа
+   * 
+   * @param {string} m2OrderId - ID заказа M2
+   * @returns {Promise<void>}
+   */
+  async deleteOrderMapping(m2OrderId) {
+    try {
+      logger.info('Удаление маппинга заказа', { m2OrderId });
+      
+      await this.orderMappingStore.delete(m2OrderId);
+      
+      logger.info('Маппинг заказа успешно удалён', { m2OrderId });
+    } catch (error) {
+      logger.logFileError(
+        'Не удалось удалить маппинг заказа',
+        this.orderMappingStore.filePath,
+        'delete',
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Получить список всех product.id для синхронизации
    * Проверяет: Требования 2.4, 5.1
    * 

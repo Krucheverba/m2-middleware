@@ -89,7 +89,7 @@ async function startServer() {
     });
 
     // Health check endpoint
-    app.get('/health', (req, res) => {
+    app.get('/m2/health', (req, res) => {
       res.json({ 
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -98,7 +98,7 @@ async function startServer() {
     });
 
     // Статистика маппинга (Требование 9.4)
-    app.get('/api/mapping/stats', (req, res) => {
+    app.get('/m2/api/mapping/stats', (req, res) => {
       try {
         const stats = mapperService.getStats();
         res.json(stats);
@@ -114,7 +114,7 @@ async function startServer() {
     });
 
     // Краткая статистика маппинга для dashboard (Требование 9.4)
-    app.get('/api/mapping/summary', (req, res) => {
+    app.get('/m2/api/mapping/summary', (req, res) => {
       try {
         const summary = mapperService.getSummary();
         res.json(summary);
@@ -130,7 +130,7 @@ async function startServer() {
     });
 
     // Webhook маршруты
-    app.use('/', createMoySkladWebhookRouter(stockService));
+    app.use('/m2', createMoySkladWebhookRouter(stockService, orderService));
 
     // 404 handler
     app.use((req, res) => {

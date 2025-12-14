@@ -579,6 +579,82 @@ class OrderService {
   }
 
   /**
+   * Отменить заказ в МойСклад
+   * Проверяет: Требования 8.1, 8.2, 8.3
+   * 
+   * @param {string} m2OrderId - ID заказа M2
+   * @returns {Promise<void>}
+   */
+  async cancelOrder(m2OrderId) {
+    try {
+      logger.info('Отмена заказа в МойСклад', {
+        m2OrderId
+      });
+      
+      // Найти маппинг заказа
+      const moySkladOrderId = await this.mapperService.getMoySkladOrderId(m2OrderId);
+      
+      // Проверить что маппинг существует
+      if (!moySkladOrderId) {
+        logger.warn('Маппинг заказа не найден, отмена пропущена', {
+          m2OrderId
+        });
+        
+        // Заказ не был создан в МойСклад - ничего не делаем
+        return;
+      }
+      
+      logger.info('Найден маппинг заказа для отмены', {
+        m2OrderId,
+        moySkladOrderId
+      });
+      
+      // Получить заказ из МойСклад чтобы проверить его статус
+      const order = await this.moySkladClient.getCustomerOrder(moySkladOrderId);
+      
+      // Проверить что заказ ещё не отгружен
+      // В МойСклад отгруженные заказы имеют связанные отгрузки (demands)
+      if (order.shipments && order.shipments.length > 0) {
+        logger.warn('Заказ уже отгружен, автоматическая отмена невозможна', {
+          m2OrderId,
+          moySkladOrderId,
+          shipmentsCount: order.shipments.length
+        });
+        
+        throw new Error(
+          `Заказ ${m2OrderId} уже отгружен в МойСклад. ` +
+          `Автоматическая отмена невозможна. Требуется ручная обработка.`
+        );
+      }
+      
+      // Удалить заказ из МойСклад (это снимет резервирование)
+      await this.moySkladClient.deleteCustomerOrder(moySkladOrderId);
+      
+      logger.info('Заказ успешно отменён в МойСклад', {
+        m2OrderId,
+        moySkladOrderId
+      });
+      
+      // Удалить маппинг заказа
+      await this.mapperService.deleteOrderMapping(m2OrderId);
+      
+      logger.info('Маппинг заказа удалён', {
+        m2OrderId,
+        moySkladOrderId
+      });
+      
+    } catch (error) {
+      logger.logApiError(
+        'Не удалось отменить заказ в МойСклад',
+        { endpoint: '/entity/customerorder', method: 'DELETE', m2OrderId },
+        null,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Получить статистику обработки заказов
    * 
    * @returns {Object} Статистика

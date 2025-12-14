@@ -65,7 +65,7 @@ node src/server.js
 ```bash
 PORT=3000 \
 YANDEX_CAMPAIGN_ID=your-campaign-id \
-YANDEX_TOKEN=your-token \
+YANDEX_TOKEN=ACMA:your-api-key-here \
 MS_TOKEN=your-moysklad-token \
 MS_BASE=https://api.moysklad.ru/api/remap/1.2 \
 STOCK_SYNC_INTERVAL_MINUTES=10 \
@@ -82,12 +82,24 @@ node src/server.js
 |-----------|----------|--------------|----------------------|
 | `PORT` | Порт HTTP сервера | Нет | 3000 |
 | `YANDEX_CAMPAIGN_ID` | ID кампании Яндекс.Маркет | Да | - |
-| `YANDEX_TOKEN` | API токен Яндекс.Маркет | Да | - |
+| `YANDEX_TOKEN` | API-key токен Яндекс.Маркет (формат: ACMA:xxxxx:xxxxx) | Да | - |
 | `MS_TOKEN` | API токен МойСклад | Да | - |
 | `MS_BASE` | Базовый URL API МойСклад | Нет | https://api.moysklad.ru/api/remap/1.2 |
 | `STOCK_SYNC_INTERVAL_MINUTES` | Интервал синхронизации остатков | Нет | 10 |
 | `ORDER_POLL_INTERVAL_MINUTES` | Интервал polling заказов | Нет | 5 |
 | `LOG_LEVEL` | Уровень логирования | Нет | error |
+
+### Получение API-key токена
+
+API-key токены - это новый рекомендуемый формат авторизации в Яндекс.Маркет API (вместо устаревших OAuth токенов).
+
+**Как получить:**
+1. Войдите в личный кабинет Яндекс.Маркет
+2. Перейдите в **"API и модули"** → **"Токены авторизации"**
+3. Нажмите **"Создать"**, укажите название и выберите доступы
+4. Скопируйте токен в формате `ACMA:xxxxx:xxxxx`
+
+**Документация:** https://yandex.ru/dev/market/partner-api/doc/ru/concepts/api-key
 
 ## Endpoints
 

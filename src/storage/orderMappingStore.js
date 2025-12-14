@@ -186,6 +186,64 @@ class OrderMappingStore {
   }
 
   /**
+   * Удалить маппинг заказа из файла
+   * Используется при отмене заказа
+   * 
+   * @param {string} m2OrderId - ID заказа M2
+   * @returns {Promise<boolean>} True если маппинг был удалён, false если не найден
+   */
+  async delete(m2OrderId) {
+    if (!m2OrderId) {
+      throw new Error('Требуется m2OrderId');
+    }
+
+    let lockAcquired = false;
+    
+    try {
+      // Получить блокировку
+      await this._acquireLock();
+      lockAcquired = true;
+
+      // Прочитать существующие маппинги
+      const mappings = await this._readMappings();
+
+      // Найти индекс маппинга для удаления
+      const existingIndex = mappings.findIndex(m => m.m2OrderId === m2OrderId);
+      
+      if (existingIndex === -1) {
+        logger.warn('Маппинг заказа не найден для удаления', { m2OrderId });
+        return false;
+      }
+
+      // Удалить маппинг
+      const deletedMapping = mappings.splice(existingIndex, 1)[0];
+      logger.info('Удалён маппинг заказа', { 
+        m2OrderId, 
+        moySkladOrderId: deletedMapping.moySkladOrderId 
+      });
+
+      // Записать обратно в файл
+      await this._writeMappings(mappings);
+      
+      return true;
+      
+    } catch (error) {
+      logger.logFileError(
+        'Не удалось удалить маппинг заказа',
+        this.filePath,
+        'delete',
+        error
+      );
+      throw error;
+    } finally {
+      // Всегда освобождать блокировку
+      if (lockAcquired) {
+        await this._releaseLock();
+      }
+    }
+  }
+
+  /**
    * Проверить существует ли маппинг заказа
    * Проверяет: Требования 8.4
    * 

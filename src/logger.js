@@ -1,5 +1,17 @@
 const winston = require('winston');
+const path = require('path');
+const fs = require('fs');
 const config = require('./config');
+
+// Создаём директорию для логов если её нет
+const logDir = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// Абсолютные пути к файлам логов
+const errorLogPath = path.join(logDir, 'error.log');
+const combinedLogPath = path.join(logDir, 'combined.log');
 
 // Функция для удаления credentials из логов (Требование 7.3)
 const sanitizeLog = winston.format((info) => {
@@ -24,7 +36,13 @@ const sanitizeLog = winston.format((info) => {
     return sanitized;
   };
   
-  return sanitize(info);
+  // Важно: Winston format должен возвращать info объект
+  const sanitized = sanitize(info);
+  // Копируем все свойства обратно в info
+  Object.keys(sanitized).forEach(key => {
+    info[key] = sanitized[key];
+  });
+  return info;
 });
 
 // Базовый winston logger
@@ -50,16 +68,21 @@ const baseLogger = winston.createLogger({
       )
     }),
     new winston.transports.File({ 
-      filename: 'logs/error.log', 
+      filename: errorLogPath, 
       level: 'error',
       format: winston.format.json()
     }),
     new winston.transports.File({ 
-      filename: 'logs/combined.log',
+      filename: combinedLogPath,
       format: winston.format.json()
     })
   ]
 });
+
+// Логируем пути к файлам при инициализации
+console.log(`[Winston] Логи будут записываться в:`);
+console.log(`  - Combined: ${combinedLogPath}`);
+console.log(`  - Errors:   ${errorLogPath}`);
 
 // Расширенный logger с специализированными методами для разных типов ошибок
 const logger = {

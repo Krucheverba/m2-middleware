@@ -87,10 +87,21 @@ cp .env.example .env
 
 ```env
 PORT=3000
+
+# Яндекс.Маркет API Configuration
 YANDEX_CAMPAIGN_ID=your-campaign-id
-YANDEX_TOKEN=your-yandex-token
+
+# API-key токен (новый формат, рекомендуется)
+# Получите в личном кабинете: API и модули → Токены авторизации → Создать
+# Формат: ACMA:xxxxx:xxxxx
+# Документация: https://yandex.ru/dev/market/partner-api/doc/ru/concepts/api-key
+YANDEX_TOKEN=ACMA:your-api-key-here
+
+# МойСклад API Configuration
 MS_TOKEN=your-moysklad-token
 MS_BASE=https://api.moysklad.ru/api/remap/1.2
+
+# Sync Configuration
 SYNC_INTERVAL_MINUTES=10
 ORDER_POLL_INTERVAL_MINUTES=5
 LOG_LEVEL=error
@@ -100,6 +111,18 @@ PRODUCT_MAPPING_FILE=./data/product-mappings.json
 ENABLE_MIGRATION=false
 MIGRATION_BACKUP_DIR=./data/backups
 ```
+
+### Получение API-key токена Яндекс.Маркет
+
+1. Войдите в личный кабинет Яндекс.Маркет
+2. Перейдите в раздел **"API и модули"**
+3. В блоке **"Токены авторизации"** нажмите **"Создать"**
+4. Укажите уникальное название токена
+5. Выберите необходимые доступы (управление остатками, получение заказов)
+6. Нажмите **"Создать"**
+7. Скопируйте полученный токен в формате `ACMA:xxxxx:xxxxx`
+
+**Важно:** API-key токены рекомендуются вместо устаревших OAuth токенов. Подробнее в [документации Яндекс](https://yandex.ru/dev/market/partner-api/doc/ru/concepts/api-key).
 
 ### Настройка файла маппинга
 
