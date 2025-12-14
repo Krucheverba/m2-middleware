@@ -6,7 +6,6 @@ class MoySkladClient {
   constructor() {
     this.baseURL = config.MS_BASE;
     this.token = config.MS_TOKEN;
-    this.companyId = config.MS_COMPANY_ID;
     
     this.client = axios.create({
       baseURL: this.baseURL,

@@ -6,7 +6,6 @@ class Config {
     this.YANDEX_CAMPAIGN_ID = process.env.YANDEX_CAMPAIGN_ID;
     this.YANDEX_TOKEN = process.env.YANDEX_TOKEN;
     this.MS_TOKEN = process.env.MS_TOKEN;
-    this.MS_COMPANY_ID = process.env.MS_COMPANY_ID;
     this.MS_BASE = process.env.MS_BASE || 'https://api.moysklad.ru/api/remap/1.2';
     this.STOCK_SYNC_INTERVAL_MINUTES = parseInt(process.env.SYNC_INTERVAL_MINUTES || '10', 10);
     this.ORDER_POLL_INTERVAL_MINUTES = parseInt(process.env.ORDER_POLL_INTERVAL_MINUTES || '5', 10);
@@ -21,8 +20,7 @@ class Config {
   validate() {
     const required = [
       'YANDEX_CAMPAIGN_ID',
-      'MS_TOKEN',
-      'MS_COMPANY_ID'
+      'MS_TOKEN'
     ];
 
     const missing = required.filter(key => !this[key]);
@@ -63,7 +61,6 @@ class Config {
     return {
       PORT: this.PORT,
       MS_BASE: this.MS_BASE,
-      MS_COMPANY_ID: this.MS_COMPANY_ID,
       STOCK_SYNC_INTERVAL_MINUTES: this.STOCK_SYNC_INTERVAL_MINUTES,
       ORDER_POLL_INTERVAL_MINUTES: this.ORDER_POLL_INTERVAL_MINUTES,
       LOG_LEVEL: this.LOG_LEVEL,
