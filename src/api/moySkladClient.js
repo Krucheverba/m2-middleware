@@ -6,6 +6,7 @@ class MoySkladClient {
   constructor() {
     this.baseURL = config.MS_BASE;
     this.token = config.MS_TOKEN;
+    this.companyId = config.MS_COMPANY_ID;
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -95,8 +96,11 @@ class MoySkladClient {
     try {
       logger.debug('Получение остатков товара', { productId });
       
+      // ИСПРАВЛЕНИЕ: МойСклад API требует ПОЛНЫЙ URL в фильтре
+      // Формат: https://api.moysklad.ru/api/remap/1.2/entity/product/${productId}
+      const productUrl = `${this.baseURL}/entity/product/${productId}`;
       const params = {
-        filter: `product=${this.baseURL}/entity/product/${productId}`
+        filter: `product=${productUrl}`
       };
       
       const response = await this.client.get('/report/stock/bystore', { params });
@@ -213,6 +217,36 @@ class MoySkladClient {
   }
 
   /**
+   * Получить заказ покупателя по ID
+   * @param {string} orderId - ID заказа
+   * @returns {Promise<Object>} Данные заказа
+   */
+  async getCustomerOrder(orderId) {
+    try {
+      logger.debug('Получение заказа покупателя', { orderId });
+      
+      const response = await this.client.get(`/entity/customerorder/${orderId}`);
+      const order = response.data;
+      
+      logger.debug('Заказ покупателя получен', {
+        orderId: order.id,
+        orderName: order.name,
+        state: order.state?.name
+      });
+      
+      return order;
+    } catch (error) {
+      logger.error('Ошибка при получении заказа покупателя', {
+        errorType: 'API_ERROR',
+        endpoint: `/entity/customerorder/${orderId}`,
+        orderId,
+        error: error.message
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Обновить статус заказа покупателя
    * @param {string} orderId - ID заказа
    * @param {string} stateId - ID статуса (meta href)
@@ -250,6 +284,31 @@ class MoySkladClient {
         endpoint: `/entity/customerorder/${orderId}`,
         orderId,
         stateId,
+        error: error.message,
+        errorResponse: error.response?.data
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Удалить заказ покупателя (отменить)
+   * Используется для отмены заказов которые ещё не отгружены
+   * @param {string} orderId - ID заказа
+   * @returns {Promise<void>}
+   */
+  async deleteCustomerOrder(orderId) {
+    try {
+      logger.debug('Удаление заказа покупателя', { orderId });
+      
+      await this.client.delete(`/entity/customerorder/${orderId}`);
+      
+      logger.info('Заказ покупателя удалён', { orderId });
+    } catch (error) {
+      logger.error('Ошибка при удалении заказа покупателя', {
+        errorType: 'API_ERROR',
+        endpoint: `/entity/customerorder/${orderId}`,
+        orderId,
         error: error.message,
         errorResponse: error.response?.data
       });
